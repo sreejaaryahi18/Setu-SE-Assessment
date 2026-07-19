@@ -1,0 +1,172 @@
+{
+  "info": {
+    "name": "Setu Payment Reconciliation Service",
+    "description": "Covers event ingestion (incl. idempotency), transaction retrieval, and reconciliation reporting. Set the `base_url` collection variable to your local (http://127.0.0.1:8000) or deployed URL.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000" },
+    { "key": "sample_event_id", "value": "postman-evt-001" },
+    { "key": "sample_transaction_id", "value": "postman-txn-001" },
+    { "key": "sample_merchant_id", "value": "merchant_1" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "Ingest payment_initiated",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": \"{{sample_event_id}}\",\n  \"event_type\": \"payment_initiated\",\n  \"transaction_id\": \"{{sample_transaction_id}}\",\n  \"merchant_id\": \"{{sample_merchant_id}}\",\n  \"merchant_name\": \"UrbanThreads\",\n  \"amount\": 1500.50,\n  \"currency\": \"INR\",\n  \"timestamp\": \"2026-07-17T10:00:00+00:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Ingest payment_processed (same transaction)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": \"postman-evt-002\",\n  \"event_type\": \"payment_processed\",\n  \"transaction_id\": \"{{sample_transaction_id}}\",\n  \"merchant_id\": \"{{sample_merchant_id}}\",\n  \"merchant_name\": \"UrbanThreads\",\n  \"amount\": 1500.50,\n  \"currency\": \"INR\",\n  \"timestamp\": \"2026-07-17T10:05:00+00:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Ingest settled (same transaction)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": \"postman-evt-003\",\n  \"event_type\": \"settled\",\n  \"transaction_id\": \"{{sample_transaction_id}}\",\n  \"merchant_id\": \"{{sample_merchant_id}}\",\n  \"merchant_name\": \"UrbanThreads\",\n  \"amount\": 1500.50,\n  \"currency\": \"INR\",\n  \"timestamp\": \"2026-07-17T11:00:00+00:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Re-submit duplicate event (idempotency check)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": \"{{sample_event_id}}\",\n  \"event_type\": \"payment_initiated\",\n  \"transaction_id\": \"{{sample_transaction_id}}\",\n  \"merchant_id\": \"{{sample_merchant_id}}\",\n  \"merchant_name\": \"UrbanThreads\",\n  \"amount\": 1500.50,\n  \"currency\": \"INR\",\n  \"timestamp\": \"2026-07-17T10:00:00+00:00\"\n}"
+            },
+            "description": "Expect `duplicate: true` in the response and no change to event_count on the transaction."
+          }
+        },
+        {
+          "name": "Ingest with invalid event_type (expect 422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": \"postman-evt-bad\",\n  \"event_type\": \"not_a_real_type\",\n  \"transaction_id\": \"{{sample_transaction_id}}\",\n  \"merchant_id\": \"{{sample_merchant_id}}\",\n  \"amount\": 100,\n  \"currency\": \"INR\",\n  \"timestamp\": \"2026-07-17T10:00:00+00:00\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "List transactions (default)",
+          "request": { "method": "GET", "url": "{{base_url}}/transactions?page=1&page_size=20" }
+        },
+        {
+          "name": "List transactions filtered by merchant",
+          "request": { "method": "GET", "url": "{{base_url}}/transactions?merchant_id={{sample_merchant_id}}" }
+        },
+        {
+          "name": "List transactions filtered by status=discrepancy",
+          "request": { "method": "GET", "url": "{{base_url}}/transactions?status=discrepancy" }
+        },
+        {
+          "name": "List transactions with date range + sorting",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/transactions?date_from=2026-01-01T00:00:00Z&date_to=2026-03-31T23:59:59Z&sort_by=amount&sort_order=desc&page=1&page_size=10"
+          }
+        },
+        {
+          "name": "Get transaction detail",
+          "request": { "method": "GET", "url": "{{base_url}}/transactions/{{sample_transaction_id}}" }
+        },
+        {
+          "name": "Get transaction detail (404 case)",
+          "request": { "method": "GET", "url": "{{base_url}}/transactions/does-not-exist" }
+        }
+      ]
+    },
+    {
+      "name": "Reconciliation",
+      "item": [
+        {
+          "name": "Summary grouped by merchant",
+          "request": { "method": "GET", "url": "{{base_url}}/reconciliation/summary?group_by=merchant" }
+        },
+        {
+          "name": "Summary grouped by status",
+          "request": { "method": "GET", "url": "{{base_url}}/reconciliation/summary?group_by=status" }
+        },
+        {
+          "name": "Summary grouped by date",
+          "request": { "method": "GET", "url": "{{base_url}}/reconciliation/summary?group_by=date" }
+        },
+        {
+          "name": "All discrepancies",
+          "request": { "method": "GET", "url": "{{base_url}}/reconciliation/discrepancies?page=1&page_size=20" }
+        },
+        {
+          "name": "Discrepancies: PROCESSED_NOT_SETTLED only",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/reconciliation/discrepancies?type=PROCESSED_NOT_SETTLED&min_age_hours=6"
+          }
+        },
+        {
+          "name": "Discrepancies: SETTLED_BUT_FAILED only",
+          "request": { "method": "GET", "url": "{{base_url}}/reconciliation/discrepancies?type=SETTLED_BUT_FAILED" }
+        },
+        {
+          "name": "Discrepancies: SETTLED_NO_PAYMENT only",
+          "request": { "method": "GET", "url": "{{base_url}}/reconciliation/discrepancies?type=SETTLED_NO_PAYMENT" }
+        },
+        {
+          "name": "Discrepancies: CONFLICTING_STATES only",
+          "request": { "method": "GET", "url": "{{base_url}}/reconciliation/discrepancies?type=CONFLICTING_STATES" }
+        },
+        {
+          "name": "Discrepancies filtered by merchant",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/reconciliation/discrepancies?merchant_id={{sample_merchant_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}
