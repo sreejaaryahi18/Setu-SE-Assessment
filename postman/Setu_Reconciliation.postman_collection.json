@@ -1,11 +1,11 @@
 {
   "info": {
     "name": "Setu Payment Reconciliation Service",
-    "description": "Covers event ingestion (incl. idempotency), transaction retrieval, and reconciliation reporting. Set the `base_url` collection variable to your local (http://127.0.0.1:8000) or deployed URL.",
+    "description": "Covers event ingestion (incl. idempotency), transaction retrieval, and reconciliation reporting. `base_url` is set to the live deployment (https://setu-se-assessment.onrender.com) by default -- change it to http://127.0.0.1:8000 to test against a local instance instead. Note: the live deployment is on Render's free tier and may take 30-60s to respond to the first request after a period of inactivity.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base_url", "value": "http://127.0.0.1:8000" },
+    { "key": "base_url", "value": "https://setu-se-assessment.onrender.com" },
     { "key": "sample_event_id", "value": "postman-evt-001" },
     { "key": "sample_transaction_id", "value": "postman-txn-001" },
     { "key": "sample_merchant_id", "value": "merchant_1" }

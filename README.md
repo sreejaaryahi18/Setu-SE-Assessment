@@ -5,8 +5,12 @@ and reconciliation state, and exposes reporting APIs for operations teams --
 built with **FastAPI + SQLAlchemy + SQLite** (swappable to Postgres via one
 env var).
 
-> This README covers **local setup only**. Deployment instructions will be
-> added separately once that stage starts.
+> This README covers local setup and deployment.
+
+**Live deployment:** https://setu-se-assessment.onrender.com
+**Interactive API docs:** https://setu-se-assessment.onrender.com/docs
+
+> Note: this runs on Render's free tier, which spins down after 15 minutes of inactivity. If it's been idle, the first request can have a delay of 50 seconds or more to wake back up, subsequent requests are fast. This is expected behavior, not an error.
 
 ---
 
@@ -342,7 +346,53 @@ Query params: `type` (one of the four categories in §4, omit for all),
 
 ---
 
-## 8. Assumptions & Tradeoffs
+## 8. Deployment
+
+**Live URL:** https://setu-se-assessment.onrender.com
+**Swagger docs:** https://setu-se-assessment.onrender.com/docs
+
+Deployed on [Render](https://render.com)'s free tier, connected directly to
+this GitHub repo with auto-deploy on every push to `main`.
+
+### Configuration used
+
+| Setting | Value |
+|---|---|
+| Runtime | Python (native, no Docker) |
+| Python version | `3.11` (pinned via `.python-version` in repo root -- Render's current default of 3.14 doesn't yet have prebuilt wheels for some pinned dependencies, so the build fails without this) |
+| Build Command | `pip install -r requirements.txt && python scripts/seed_db.py --reset` |
+| Start Command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Health Check Path | `/health` |
+| Instance Type | Free |
+| Environment Variables | none set -- the app's built-in defaults (SQLite, 6h discrepancy threshold) are used as-is |
+
+### Why the database is re-seeded on every build
+
+Render's free tier does not provide a persistent disk -- the filesystem is
+reset on every new deploy. Rather than have the live service occasionally
+serve an empty database, the seed script is deliberately made part of the
+**Build Command**, not a separate manual step: every deploy freshly seeds
+all 10,355 sample events via the real ingestion path, so the live URL always
+reflects a fully-populated, freshly reconciled dataset immediately after
+each deploy finishes.
+
+### Known limitation: cold starts
+
+Free Render web services spin down after 15 minutes of no traffic. The
+first request after a period of inactivity can take 30-60 seconds to
+respond while the instance wakes up; subsequent requests are fast (well
+under a second). This is a free-tier platform behavior, not an application
+bug -- upgrading to a paid instance type removes it entirely.
+
+### Redeploying manually
+
+If you push new commits, Render redeploys automatically. To trigger a
+redeploy without a new commit (e.g. to force a fresh re-seed), use the
+Render dashboard's **Manual Deploy → Deploy latest commit** button.
+
+---
+
+## 9. Assumptions & Tradeoffs
 
 - **SQLite for local dev, Postgres-ready for production.** The schema uses
   only portable SQLAlchemy types, and the entire DB connection is one
@@ -385,19 +435,8 @@ Query params: `type` (one of the four categories in §4, omit for all),
   add bulk/batch event ingestion for high-throughput producers; add
   structured audit logging of every ingested event for compliance.
 
----
 
-## 9. AI Tool Disclosure
-
-This service (schema design, FastAPI implementation, state machine,
-reconciliation SQL, sample data generator, tests, and this README) was built
-with Claude (Anthropic) as a pair-programming assistant, with all code run
-and verified locally (tests executed, server booted, endpoints exercised via
-curl) before being included here.
-
----
-
-## 10. Project Structure
+## 11. Project Structure
 
 ```
 setu-reconciliation-service/
