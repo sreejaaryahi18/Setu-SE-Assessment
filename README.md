@@ -384,11 +384,6 @@ respond while the instance wakes up; subsequent requests are fast (well
 under a second). This is a free-tier platform behavior, not an application
 bug -- upgrading to a paid instance type removes it entirely.
 
-### Redeploying manually
-
-If you push new commits, Render redeploys automatically. To trigger a
-redeploy without a new commit (e.g. to force a fresh re-seed), use the
-Render dashboard's **Manual Deploy → Deploy latest commit** button.
 
 ---
 
@@ -435,6 +430,13 @@ Render dashboard's **Manual Deploy → Deploy latest commit** button.
   add bulk/batch event ingestion for high-throughput producers; add
   structured audit logging of every ingested event for compliance.
 
+## 10. AI Tool Disclosure
+
+This service (schema design, FastAPI implementation, state machine,
+reconciliation SQL, sample data generator, tests, and this README) was built
+with Claude (Anthropic) as a pair-programming assistant, with all code run
+and verified locally (tests executed, server booted, endpoints exercised via
+curl) before being included here.
 
 ## 11. Project Structure
 
